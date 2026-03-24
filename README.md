@@ -64,8 +64,10 @@ link = client.payment_links.create(
     idempotency_key="idem_abc123",   # optional
 )
 
-# List (with optional filters)
-links = client.payment_links.list(page=1, status="active")
+# List (returns a PaginatedResponse)
+page = client.payment_links.list(limit=10, status="active")
+for link in page:
+    print(link["id"])
 
 # Retrieve
 link = client.payment_links.retrieve("pl_abc123")
@@ -84,7 +86,9 @@ fees = client.payment_links.get_fees("pl_abc123")
 
 ```python
 # List
-transactions = client.transactions.list(status="completed", page=1)
+page = client.transactions.list(limit=25, status="completed")
+for txn in page:
+    print(txn["id"])
 
 # Retrieve
 txn = client.transactions.retrieve("txn_abc123")
@@ -101,7 +105,9 @@ endpoint = client.webhook_endpoints.create(
 secret = endpoint["data"]["secret"]
 
 # List
-endpoints = client.webhook_endpoints.list()
+page = client.webhook_endpoints.list()
+for endpoint in page:
+    print(endpoint["id"])
 
 # Retrieve
 endpoint = client.webhook_endpoints.retrieve("we_abc123")
@@ -120,11 +126,66 @@ client.webhook_endpoints.delete("we_abc123")
 key = client.api_keys.create(name="Production Key")
 
 # List
-keys = client.api_keys.list()
+page = client.api_keys.list()
+for key in page:
+    print(key["id"])
 
 # Delete
 client.api_keys.delete("key_abc123")
 ```
+
+### Pagination
+
+All list endpoints use cursor-based pagination and return a `PaginatedResponse` object.
+
+**Parameters:**
+
+| Parameter        | Type  | Default | Description                              |
+|------------------|-------|---------|------------------------------------------|
+| `limit`          | `int` | `20`    | Number of items per page (1-100)         |
+| `starting_after` | `str` | `None`  | Cursor for the next page of results      |
+
+**Basic usage:**
+
+```python
+# Fetch the first page with a custom limit
+page = client.payment_links.list(limit=10)
+for link in page:
+    print(link["id"])
+
+print(page.has_more)  # True if there are more pages
+```
+
+**Manual page iteration:**
+
+```python
+page = client.payment_links.list(limit=50)
+while True:
+    for link in page:
+        process(link)
+    if not page.has_more:
+        break
+    page = page.next_page()
+```
+
+**Auto-paging iterator:**
+
+```python
+# Automatically fetches all pages
+for link in client.payment_links.list(limit=100).auto_paging_iter():
+    print(link["id"])
+```
+
+**PaginatedResponse properties:**
+
+| Property / Method    | Description                                     |
+|----------------------|-------------------------------------------------|
+| `results`            | List of items on the current page               |
+| `has_more`           | `True` if a next page exists                    |
+| `next_page()`        | Fetch and return the next page                  |
+| `previous_page()`    | Fetch and return the previous page              |
+| `auto_paging_iter()` | Iterator that yields all items across all pages  |
+| `meta`               | Response metadata (request_id, mode)            |
 
 ---
 

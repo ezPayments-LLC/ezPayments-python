@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ezpayments import EzPayments
+from ezpayments.pagination import PaginatedResponse
 
 
 class TestPaymentLinks:
@@ -76,20 +77,29 @@ class TestPaymentLinks:
 
     def test_list_payment_links(self):
         expected = {
-            "data": [{"id": "pl_1"}, {"id": "pl_2"}],
+            "data": {
+                "results": [{"id": "pl_1"}, {"id": "pl_2"}],
+                "next": None,
+                "previous": None,
+            },
             "meta": {"request_id": "req_002", "mode": "live"},
         }
         self.mock_session.return_value = self._make_response(200, expected)
 
-        result = self.client.payment_links.list(page=1, status="active")
+        result = self.client.payment_links.list(limit=10, status="active")
 
-        assert result == expected
+        assert isinstance(result, PaginatedResponse)
+        assert len(result) == 2
         call_kwargs = self.mock_session.call_args
         assert call_kwargs.kwargs["method"] == "GET"
-        assert call_kwargs.kwargs["params"] == {"page": 1, "status": "active"}
+        assert call_kwargs.kwargs["params"] == {"limit": 10, "status": "active"}
 
     def test_list_without_params(self):
-        self.mock_session.return_value = self._make_response(200, {"data": []})
+        body = {
+            "data": {"results": [], "next": None, "previous": None},
+            "meta": {},
+        }
+        self.mock_session.return_value = self._make_response(200, body)
 
         self.client.payment_links.list()
 

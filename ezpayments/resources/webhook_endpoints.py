@@ -1,5 +1,7 @@
 """Webhook Endpoints resource."""
 
+from ezpayments.pagination import PaginatedResponse
+
 
 class WebhookEndpoints:
     """Manage webhook endpoint subscriptions.
@@ -49,20 +51,38 @@ class WebhookEndpoints:
             "POST", self._base_path, json_data=data, headers=headers
         )
 
-    def list(self, **kwargs):
+    def list(self, limit=None, starting_after=None, **kwargs):
         """List all webhook endpoints.
 
         Args:
-            **kwargs: Optional query parameters for filtering and pagination.
+            limit: Maximum number of results to return (1-100, default 20).
+            starting_after: Cursor for fetching the next page of results.
+                Pass the cursor value from a previous response's ``next`` URL.
+            **kwargs: Additional query parameters for filtering.
 
         Returns:
-            A dictionary containing the list of webhook endpoints.
+            A :class:`~ezpayments.pagination.PaginatedResponse` containing
+            the results and pagination helpers.
 
         Example::
 
-            endpoints = client.webhook_endpoints.list()
+            page = client.webhook_endpoints.list(limit=10)
+            for endpoint in page:
+                print(endpoint["id"])
         """
-        return self._http.request("GET", self._base_path, params=kwargs or None)
+        params = {}
+        if limit is not None:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        params.update(kwargs)
+
+        response = self._http.request(
+            "GET", self._base_path, params=params or None
+        )
+        data = response.get("data", {})
+        meta = response.get("meta", {})
+        return PaginatedResponse(data, meta, self._http, self._base_path)
 
     def retrieve(self, endpoint_id):
         """Retrieve a single webhook endpoint by ID.

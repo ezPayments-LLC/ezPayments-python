@@ -22,10 +22,12 @@ from ezpayments.exceptions import (
     ValidationError,
     WebhookSignatureError,
 )
+from ezpayments.pagination import PaginatedResponse
 from ezpayments.webhook import Webhook
 
 __all__ = [
     "EzPayments",
+    "PaginatedResponse",
     "Webhook",
     "EzPaymentsError",
     "AuthenticationError",

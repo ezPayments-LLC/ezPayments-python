@@ -25,9 +25,13 @@ link = client.payment_links.create(
 )
 print("Created payment link:", link["data"]["id"])
 
-# List all payment links
-links = client.payment_links.list(page=1, status="active")
-for item in links["data"]:
+# List payment links (returns a PaginatedResponse)
+page = client.payment_links.list(limit=10, status="active")
+for item in page:
+    print(" -", item["id"])
+
+# Iterate through all pages automatically
+for item in client.payment_links.list(limit=50).auto_paging_iter():
     print(" -", item["id"])
 
 # Retrieve a single payment link
@@ -48,8 +52,8 @@ client.payment_links.delete("pl_abc123")
 # ------------------------------------------------------------------
 
 # List transactions
-transactions = client.transactions.list(status="completed", page=1)
-for txn in transactions["data"]:
+page = client.transactions.list(limit=25, status="completed")
+for txn in page:
     print("Transaction:", txn["id"], txn.get("amount"))
 
 # Retrieve a single transaction
@@ -68,7 +72,9 @@ signing_secret = endpoint["data"]["secret"]
 print("Webhook secret:", signing_secret)
 
 # List all webhook endpoints
-endpoints = client.webhook_endpoints.list()
+page = client.webhook_endpoints.list()
+for ep in page:
+    print("Endpoint:", ep["id"])
 
 # Update a webhook endpoint
 client.webhook_endpoints.update(
@@ -88,7 +94,9 @@ key = client.api_keys.create(name="CI/CD Key")
 print("New API key:", key["data"]["secret_key"])
 
 # List all API keys
-keys = client.api_keys.list()
+page = client.api_keys.list()
+for k in page:
+    print("Key:", k["id"])
 
 # Delete an API key
 client.api_keys.delete("key_abc123")

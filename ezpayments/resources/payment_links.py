@@ -1,5 +1,7 @@
 """Payment Links resource."""
 
+from ezpayments.pagination import PaginatedResponse
+
 
 class PaymentLinks:
     """Manage payment links.
@@ -48,21 +50,44 @@ class PaymentLinks:
             "POST", self._base_path, json_data=data, headers=headers
         )
 
-    def list(self, **kwargs):
+    def list(self, limit=None, starting_after=None, **kwargs):
         """List all payment links.
 
         Args:
-            **kwargs: Optional query parameters for filtering and pagination
-                (e.g. ``page=2``, ``status="active"``).
+            limit: Maximum number of results to return (1-100, default 20).
+            starting_after: Cursor for fetching the next page of results.
+                Pass the cursor value from a previous response's ``next`` URL.
+            **kwargs: Additional query parameters for filtering
+                (e.g. ``status="active"``).
 
         Returns:
-            A dictionary containing the list of payment links and pagination info.
+            A :class:`~ezpayments.pagination.PaginatedResponse` containing
+            the results and pagination helpers.
 
         Example::
 
-            links = client.payment_links.list(page=1)
+            # Get the first page
+            page = client.payment_links.list(limit=10)
+            for link in page:
+                print(link["id"])
+
+            # Iterate through all pages
+            for link in client.payment_links.list(limit=50).auto_paging_iter():
+                print(link["id"])
         """
-        return self._http.request("GET", self._base_path, params=kwargs or None)
+        params = {}
+        if limit is not None:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        params.update(kwargs)
+
+        response = self._http.request(
+            "GET", self._base_path, params=params or None
+        )
+        data = response.get("data", {})
+        meta = response.get("meta", {})
+        return PaginatedResponse(data, meta, self._http, self._base_path)
 
     def retrieve(self, payment_link_id):
         """Retrieve a single payment link by ID.

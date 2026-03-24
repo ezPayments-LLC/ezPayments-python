@@ -1,5 +1,7 @@
 """Transactions resource."""
 
+from ezpayments.pagination import PaginatedResponse
+
 
 class Transactions:
     """Retrieve transaction records.
@@ -16,21 +18,39 @@ class Transactions:
     def __init__(self, http_client):
         self._http = http_client
 
-    def list(self, **kwargs):
+    def list(self, limit=None, starting_after=None, **kwargs):
         """List all transactions.
 
         Args:
-            **kwargs: Optional query parameters for filtering and pagination
-                (e.g. ``page=1``, ``status="completed"``).
+            limit: Maximum number of results to return (1-100, default 20).
+            starting_after: Cursor for fetching the next page of results.
+                Pass the cursor value from a previous response's ``next`` URL.
+            **kwargs: Additional query parameters for filtering
+                (e.g. ``status="completed"``).
 
         Returns:
-            A dictionary containing the list of transactions and pagination info.
+            A :class:`~ezpayments.pagination.PaginatedResponse` containing
+            the results and pagination helpers.
 
         Example::
 
-            txns = client.transactions.list(status="completed", page=1)
+            page = client.transactions.list(limit=25, status="completed")
+            for txn in page:
+                print(txn["id"])
         """
-        return self._http.request("GET", self._base_path, params=kwargs or None)
+        params = {}
+        if limit is not None:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        params.update(kwargs)
+
+        response = self._http.request(
+            "GET", self._base_path, params=params or None
+        )
+        data = response.get("data", {})
+        meta = response.get("meta", {})
+        return PaginatedResponse(data, meta, self._http, self._base_path)
 
     def retrieve(self, transaction_id):
         """Retrieve a single transaction by ID.
